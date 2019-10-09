@@ -39,15 +39,16 @@
             Button:
                 size_hint: .5, 1
                 text: 'Import Classification Model'
-                on_release: root.show_load_dialog()
+                on_release: root.show_load_model()
 
             Button:
                 size_hint: .5, 1
                 text: 'Select & Classify Image'
-                on_release: root.predict([243.0, 810.0, None])
+                on_release: root.show_load_image()
 
         Image:
             size_hint: 1, .65
+            texture: root.loaded_image
 
         BackgroundLabel:
             size_hint: 1, .1
@@ -62,6 +63,7 @@
         FileChooserListView:
             id: filechooser
             path: root.default_path
+            filters: root.filters
 
         BoxLayout:
             size_hint_y: None
