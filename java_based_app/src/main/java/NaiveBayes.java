@@ -84,12 +84,79 @@ public class NaiveBayes {
         }
     }
 
+    // PDF: Probability Density Function
+    private static Double calculatePDF(Double x, Double mean, Double std_dev){
+        Double x_minus_mean = x - mean;
+        if (std_dev == 0.0){
+            if (mean == 0.0) {
+                return 1.0;
+            }
+            else {
+                return  0.0;
+            }
+        }
+        Double exp = Math.exp(-1 * (Math.pow(x_minus_mean, 2) / (2 * Math.pow(std_dev.doubleValue(), 2))));
+        return (1 / (Math.sqrt(2 * Math.PI) * std_dev)) * exp;
+    }
+
+
+    public ArrayList<String> predict(ArrayList<Double> input_vector){
+        HashMap<String, Double> probabilities = new HashMap<String, Double>();
+
+        for (Map.Entry<String, ArrayList<DescriptiveStats>> entry : this.model.entrySet()) {
+            String class_name = entry.getKey();
+            ArrayList<DescriptiveStats> class_model = entry.getValue();
+            probabilities.put(class_name, 1.0);
+            for (int i = 0; i < class_model.size(); i++) {
+                DescriptiveStats feature = class_model.get(i);
+                Double mean = feature.getMean();
+                Double std_dev = feature.getStd_dev();
+                Double x = input_vector.get(i);
+
+                Double new_prob = probabilities.get(class_name) * NaiveBayes.calculatePDF(x, mean, std_dev);
+                probabilities.put(class_name, new_prob);
+            }
+        }
+
+        //find best label
+        String best_label = "";
+        Double best_prob = -1.0;
+        for (Map.Entry<String, Double> prob : probabilities.entrySet()) {
+            String class_value = prob.getKey();
+            Double prob_value = prob.getValue();
+            if (class_value == "" || prob_value > best_prob){
+                best_prob = prob_value;
+                best_label = class_value;
+            }
+//            System.out.printf( "\n%s %.5f", best_label, best_prob);
+        }
+        ArrayList<String> result = new ArrayList<String>(Arrays.asList(best_label, best_prob.toString()));
+        return result;
+    }
+
+
+    public void makeYPrediction(){
+        this.y_pred = new ArrayList<String>(this.y_dataset);
+        for (int i = 0; i < this.DATASET_SIZE; i++) {
+            ArrayList<Double> input_vector =  new ArrayList<Double>();
+            for (int j = 0; j < FEATURE_SIZE; j++) {
+                input_vector.add(this.x_dataset.get(j).get(i));
+            }
+
+            ArrayList<String> y_pred_res = predict(input_vector);
+            y_pred.set(i, y_pred_res.get(0));
+        }
+    }
 
 
     public NaiveBayes(){
         loadDataset("out/data.csv", true);
         buildModel();
+        makeYPrediction();
         System.out.println(this.model);
+        System.out.println();
+        System.out.println(this.y_pred);
+        System.out.println(this.y_dataset);
 
     }
 
