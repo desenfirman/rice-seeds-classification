@@ -1,14 +1,11 @@
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math3.util.MathArrays;
-import org.omg.CORBA.PRIVATE_MEMBER;
-import sun.security.krb5.internal.crypto.Des;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import javax.swing.*;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Array;
+import java.lang.reflect.Type;
 import java.util.*;
 
 public class NaiveBayes {
@@ -51,7 +48,7 @@ public class NaiveBayes {
                 y_dataset.add(row_data[idx_class]);
                 DATASET_SIZE++;
             }
-            System.out.println(DATASET_SIZE);
+//            System.out.println(DATASET_SIZE);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -83,6 +80,7 @@ public class NaiveBayes {
             this.model.put(class_name, feature_set);
         }
     }
+
 
     // PDF: Probability Density Function
     private static Double calculatePDF(Double x, Double mean, Double std_dev){
@@ -149,19 +147,81 @@ public class NaiveBayes {
     }
 
 
-    public NaiveBayes(){
-        loadDataset("out/data.csv", true);
+    public Double getAccuracyMetric(){
+        int correct = 0;
+        for (int i = 0; i < this.DATASET_SIZE; i++) {
+            if (y_pred.get(i).equals(y_dataset.get(i))){
+                correct++;
+            }
+        }
+        return (((double) correct) / this.DATASET_SIZE) * 100;
+    }
+
+    public void makePredictiosUsingTest(ArrayList<ArrayList<Double>> x_test_dataset, ArrayList<String> y_test_dataset){
+        this.y_dataset = new ArrayList<String>(y_test_dataset);
+        this.x_dataset = new ArrayList<ArrayList<Double>>(x_test_dataset);
+        makeYPrediction();
+    }
+
+
+    public void importModel(String input_filepath){
+        String jsonString = "";
+        try(FileReader fileReader = new FileReader(input_filepath)) {
+            int ch = fileReader.read();
+            while(ch != -1) {
+                jsonString += (char)ch;
+                ch = fileReader.read();
+            }
+        } catch (FileNotFoundException e) {
+            // exception handling
+        } catch (IOException e) {
+            // exception handling
+        }
+
+
+        Type mapType = new TypeToken<Map<String, ArrayList<DescriptiveStats>>>(){}.getType();
+        Gson gsonBuilder = new GsonBuilder().create();
+        Map<String, ArrayList<DescriptiveStats>> loaded_model = gsonBuilder.fromJson(jsonString, mapType);
+
+        this.model = new HashMap<String, ArrayList<DescriptiveStats>>(loaded_model);
+    }
+
+
+    public void exportModel(String output_filepath){
+        Gson gson = new Gson();
+        String jsonString = gson.toJson(this.model);
+        try(FileWriter fileWriter = new FileWriter(output_filepath)) {
+            fileWriter.write(jsonString);
+        } catch (IOException e) {
+            System.out.println(e.getLocalizedMessage());
+        }
+    }
+
+
+    public NaiveBayes(ArrayList<ArrayList<Double>> x_dataset, ArrayList<String> y_dataset){
+        this.x_dataset = x_dataset;
+        this.y_dataset = y_dataset;
         buildModel();
         makeYPrediction();
-        System.out.println(this.model);
-        System.out.println();
-        System.out.println(this.y_pred);
-        System.out.println(this.y_dataset);
+    }
+
+
+    public NaiveBayes(String input_path, boolean hasHeader){
+        loadDataset(input_path, hasHeader);
+        buildModel();
+        makeYPrediction();
+//        System.out.println(getAccuracyMetric());
+    }
+
+
+    public static void kCrossValidation(String input_path, boolean hasHeader, int k_folds){
 
     }
 
     public static void main(String[] args) {
-        NaiveBayes nv = new NaiveBayes();
+        NaiveBayes nv = new NaiveBayes("out/data.csv", true);
+//        nv.exportModel("out/model.json");
+        nv.importModel("out/model.json");
     }
 
 }
@@ -212,29 +272,5 @@ class DescriptiveStats{
     @Override
     public String toString() {
         return "feature_id: " + this.feature_id + " mean: " + this.mean + " variance: " + this.variance + " std_dev: " + this.getStd_dev();
-    }
-}
-
-
-class ModelKey{
-    private final String key1, key2;
-    public ModelKey(String args1, String args2){
-            this.key1 = args1;
-            this.key2 = args2;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ModelKey)) return false;
-        ModelKey key = (ModelKey) o;
-        return this.key1 == key.key1 && this.key2 == key.key2;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = this.key1.hashCode();
-        result = 31 * result + this.key2.hashCode();
-        return result;
     }
 }
