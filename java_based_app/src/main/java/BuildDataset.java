@@ -83,6 +83,10 @@ public class BuildDataset {
         }
     }
 
+    public ArrayList<ArrayList<String>> getDataset(){
+        return this.dataset;
+    }
+
     public static void main(String[] args) {
         BuildDataset bd = new BuildDataset("in/data");
         bd.createCSV("out/data.csv");

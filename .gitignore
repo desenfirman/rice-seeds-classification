@@ -21,11 +21,11 @@ hs_err_pid*
 
 
 ### Gradle ###
-.gradle
-/build/
+java_based_app/.gradle
+java_based_app/build/
 
 # Ignore Gradle GUI config
-gradle-app.setting
+java_based_app/gradle-app.setting
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar

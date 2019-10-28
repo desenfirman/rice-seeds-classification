@@ -42,32 +42,32 @@ public class ImageObj {
         return bimage;
     }
 
-    public Map<String, Integer> getObjectDimension(){
+    public Map<String, Integer> getObjectDimension() {
         int Xmax = Integer.MIN_VALUE;
         int Xmin = Integer.MAX_VALUE;
         int Ymax = Integer.MIN_VALUE;
         int Ymin = Integer.MAX_VALUE;
 
 
-        bmp = bmp.getSubimage(bmp.getWidth() * 1/5, bmp.getHeight() * 1/3,  bmp.getWidth() * 3/5, bmp.getHeight() / 3);
+        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
         bmp = resizeImage(bmp, (int) (bmp.getWidth() * 0.25), (int) (bmp.getHeight() * 0.25));
         bmp = Grayscale.grayScaleImage(bmp);
         bmp = (new GaussianBlur(bmp)).doGaussianBlur(16, 10);
-        bmp =  Dilation.grayscaleImage(bmp);
+        bmp = Dilation.grayscaleImage(bmp);
         bmp = CannyEdgeDetector.process(bmp, 50);
-        bmp =  Dilation.binaryImage(bmp, true);
+        bmp = Dilation.binaryImage(bmp, true);
         bmp = Erosion.binaryImage(bmp, false);
-        bmp =  Dilation.grayscaleImage(bmp);
+        bmp = Dilation.grayscaleImage(bmp);
 
 
-        bmp = bmp.getSubimage(bmp.getWidth() * 1/7, bmp.getHeight() * 1/7,  bmp.getWidth() * 4/7, bmp.getHeight() * 5/7);
+        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
 
         this.processed_bmp = bmp;
 
         for (int x = 0; x < bmp.getWidth(); x++) {
             for (int y = 0; y < bmp.getHeight(); y++) {
                 boolean isWhitePixel = (bmp.getRGB(x, y) == 0xFFFFFFFF);
-                if (isWhitePixel){
+                if (isWhitePixel) {
                     Xmax = (x > Xmax) ? x : Xmax;
                     Xmin = (x < Xmin) ? x : Xmin;
 
@@ -81,7 +81,7 @@ public class ImageObj {
         int width = Xmax - Xmin;
         int height = Ymax - Ymin;
 
-        if (height > width){
+        if (height > width) {
             int temp = height;
             height = width;
             width = temp;
@@ -92,10 +92,5 @@ public class ImageObj {
         w_h.put("height", height);
 
         return w_h;
-    }
-
-    public static void main(String[] args) {
-        ImageObj imageObj = new ImageObj("in/ciherang (1).jpg");
-
     }
 }
