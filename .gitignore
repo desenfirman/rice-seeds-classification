@@ -41,3 +41,5 @@ java_based_app/gradle-app.setting
 
 out/
 in/
+
+java_based_app/.attach_pid*
