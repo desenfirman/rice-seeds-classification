@@ -213,6 +213,10 @@ public class NaiveBayes {
 //        System.out.println(getAccuracyMetric());
     }
 
+    public NaiveBayes(String model_path){
+        importModel(model_path);
+    }
+
 
     public static void kCrossValidation(String input_path, boolean hasHeader, int k_folds){
 
@@ -221,7 +225,7 @@ public class NaiveBayes {
     public static void main(String[] args) {
         NaiveBayes nv = new NaiveBayes("out/data.csv", true);
 //        nv.exportModel("out/model.json");
-        nv.importModel("out/model.json");
+//        nv.importModel("out/model.json");
     }
 
 }

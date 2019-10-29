@@ -14,10 +14,14 @@ import java.util.Map;
 public class BuildDataset {
     private String path;
     private ArrayList<ArrayList<String>> dataset;
+    private int gaussFactor, gaussOffset, cannyThreshold;
 
-    public BuildDataset(String path){
+    public BuildDataset(String path, int gaussFactor, int gaussOffset, int cannyThreshold){
         this.path = path;
         this.dataset = new ArrayList<ArrayList<String>>();
+        this.gaussFactor = gaussFactor;
+        this.gaussOffset = gaussOffset;
+        this.cannyThreshold = cannyThreshold;
         this.processDirectory();
     }
 
@@ -28,6 +32,9 @@ public class BuildDataset {
             ArrayList<File> files = this.getFileListing(dir.toString()) ;
             for ( File f: files){
                 ImageObj imageObj = new ImageObj(f.toString());
+                imageObj.setGaussFactor(gaussFactor);
+                imageObj.setGaussOffset(gaussOffset);
+                imageObj.setCannyThreshold(gaussOffset);
                 Map<String, Integer> dimension =  imageObj.getObjectDimension();
                 String width = dimension.get("width").toString();
                 String height = dimension.get("height").toString();
@@ -88,7 +95,6 @@ public class BuildDataset {
     }
 
     public static void main(String[] args) {
-        BuildDataset bd = new BuildDataset("in/data");
-        bd.createCSV("out/data.csv");
+
     }
 }
