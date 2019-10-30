@@ -1,8 +1,10 @@
 package com.example.aplikasi;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.media.Image;
 import android.net.Uri;
+import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -106,22 +108,23 @@ public class ImageObj {
         bmp = Bitmap.createScaledBitmap(bmp, ((int) (bmp.getWidth() * 0.25)), ((int) (bmp.getHeight() * 0.25)), false);
         bmp = (new GaussianBlur(bmp)).doGaussianBlur(gaussFactor, gaussOffset);
         bmp = CannyEdgeDetector.process(bmp, cannyThreshold);
-        bmp = Dilation.binaryImage(bmp, true);
-        bmp = Erosion.binaryImage(bmp, false);
+        bmp = Dilation.binaryImage(bmp, false);
+        bmp = Erosion.binaryImage(bmp, true);
 
 
         bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
 
-
+        int count = 0;
         for (int x = 0; x < bmp.getWidth(); x++) {
             for (int y = 0; y < bmp.getHeight(); y++) {
-                boolean isWhitePixel = (bmp.getPixel(x, y) == 0xFFFFFFFF);
+                boolean isWhitePixel = ( bmp.getPixel(x, y) == Color.WHITE);
                 if (isWhitePixel) {
                     Xmax = (x > Xmax) ? x : Xmax;
                     Xmin = (x < Xmin) ? x : Xmin;
 
                     Ymax = (y > Ymax) ? y : Ymax;
                     Ymin = (y < Ymin) ? y : Ymin;
+                    Log.d("Info", String.valueOf(++count));
                 }
             }
         }

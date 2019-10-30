@@ -266,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
         NaiveBayes nv = new NaiveBayes(model_reader);
         ArrayList<String> result = nv.predict(new ArrayList<Double>(Arrays.asList(((double) width), ((double) height))));
 
-        textInformation.setText("Image classified as " + result.get(0) + " with probability value " + result.get(1));
+        textInformation.setText("Width: " + width + "Height: " + height +  "\nImage classified as " + result.get(0) + " with probability value " + result.get(1));
 
 
 
@@ -327,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
 //                    Bitmap erosionBitmap = erosionBitmap(dilationBmp);
 
 //            Bitmap finalBitmap = Bitmap.createBitmap(dilationBinaryBmp, photo.getWidth() * 1/7, photo.getHeight() * 1/7,  photo.getWidth() * 5/7, photo.getHeight() * 5/7);
+            loadedImg = bmp;
             bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
             bmp = Bitmap.createScaledBitmap(bmp, ((int) (bmp.getWidth() * 0.25)), ((int) (bmp.getHeight() * 0.25)), false);
             bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
@@ -334,7 +335,6 @@ public class MainActivity extends AppCompatActivity {
 
             /*---------------------------*/
             mImageView.setImageBitmap(bmp);
-            loadedImg = bmp;
 //            Log.d("PanjangLebar", "panjang sesudah crop -> "+finalBitmap.getWidth()+" lebar sesudah crop -> "+finalBitmap.getHeight());
         }
 
