@@ -13,7 +13,6 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,27 +21,32 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private Uri mImageCaptureUri;
     private ImageView mImageView;
     private AlertDialog dialog;
     private TextView textInformation;
-    private Button buttonInfo, buttonUploadImg;
+    private Button buttonClassify, buttonUploadImg, buttonLoadConfig, buttonLoadModel;
     int scale;
     private PanjangLebar hitungPanjangLebar;
     private Dilation hitungDilation;
     private String mCurrentPhotoPath;
-    private Bitmap cropped;
+
+    private Bitmap loadedImg;
+    private Uri mModelUri, mConfigUri;
 
     private static final int PICK_FROM_CAMERA = 1;
     private static final int CROP_FROM_CAMERA = 2;
     private static final int PICK_FROM_FILE = 3;
+    private static final int LOAD_CONFIGS = 4;
+    private static final int LOAD_MODEL = 5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,9 +59,35 @@ public class MainActivity extends AppCompatActivity {
         LayoutInflater inflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
         buttonUploadImg = (Button) findViewById(R.id.SelectImageBtn);
-        buttonInfo = (Button) findViewById(R.id.InformationBtn);
+        buttonClassify = (Button) findViewById(R.id.ClassifyBtn);
+        buttonLoadConfig = (Button) findViewById(R.id.LoadConfigsBtn);
+        buttonLoadModel = (Button) findViewById(R.id.LoadModelBtn);
         mImageView = (ImageView) findViewById(R.id.ProfilePicIV);
         textInformation = (TextView)findViewById(R.id.textViewInformation);
+
+        buttonLoadConfig.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent();
+                intent.setType("application/octet-stream");
+                intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                startActivityForResult(Intent.createChooser(intent, "Complete action using"), LOAD_CONFIGS);
+            }
+        });
+
+        buttonLoadModel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent();
+                intent.setType("file/*.json");
+                intent.setType("application/octet-stream");
+                intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+                startActivityForResult(Intent.createChooser(intent, "Complete action using"), LOAD_MODEL);
+            }
+        });
 
         buttonUploadImg.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -66,12 +96,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        buttonInfo.setOnClickListener(new View.OnClickListener() {
+        buttonClassify.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                float panjang = hitungPanjangLebar.hasilPanjang();
-                float lebar = hitungPanjangLebar.hasilLebar();
-                textInformation.setText("Panjang = "+lebar+" & Lebar = "+panjang +"\n");
+                classifyImage();
             }
         });
 
@@ -208,6 +236,43 @@ public class MainActivity extends AppCompatActivity {
         public Intent appIntent;
     }
 
+    public void classifyImage(){
+        if (mConfigUri == null || mModelUri == null || loadedImg == null){
+            textInformation.setText("Error: Please check for all config, classifier model and image are already loaded.");
+            return;
+        }
+
+        BufferedReader config_reader = null;
+        try {
+            config_reader = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(mConfigUri)));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        ImageObj imageObj = new ImageObj(loadedImg);
+        imageObj.importConfiguration(config_reader);
+
+        Map<String, Integer> w_h = imageObj.getObjectDimension();
+        int width = w_h.get("width");
+        int height = w_h.get("height");
+
+        BufferedReader model_reader = null;
+        try {
+            model_reader = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(mModelUri)));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        NaiveBayes nv = new NaiveBayes(model_reader);
+        ArrayList<String> result = nv.predict(new ArrayList<Double>(Arrays.asList(((double) width), ((double) height))));
+
+        textInformation.setText("Image classified as " + result.get(0) + " with probability value " + result.get(1));
+
+
+
+        int gaussFactor, gaussOffset, cannyThreshold;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != RESULT_OK)
@@ -219,8 +284,6 @@ public class MainActivity extends AppCompatActivity {
                  * After taking a picture, do the crop
                  */
                 doCrop();
-
-
                 break;
 
             case PICK_FROM_FILE:
@@ -229,42 +292,58 @@ public class MainActivity extends AppCompatActivity {
                  */
                 mImageCaptureUri = data.getData();
 
-                doCrop();
-
+                loadImage();
+                break;
+            case LOAD_CONFIGS:
+                mConfigUri = data.getData();
+                break;
+            case LOAD_MODEL:
+                mModelUri = data.getData();
                 break;
         }
 
+    }
 
-                /**
-                 * After cropping the image, get the bitmap of the cropped image and
-                 * display it on imageview.
-                 */
-                if (cropped != null) {
-                    Bitmap photo = cropped;
-                    /*--------------------------*/
-                    Bitmap grayscaleBitmap = Grayscale.grayScaleImage(photo);
-                    Bitmap gaussianblurBitmap = GaussianBlur.doGaussian(grayscaleBitmap, 16, 0);
-                    Bitmap dilationGrayscaleBmp = Dilation.grayscaleImage(gaussianblurBitmap);
-                    Bitmap cannyBitmap = CannyEdgeDetector.process(dilationGrayscaleBmp, 50);
-                    Bitmap dilationBinaryBmp = Dilation.binaryImage(cannyBitmap, true);
+
+    private void loadImage(){
+        /**
+         * After cropping the image, get the bitmap of the cropped image and
+         * display it on imageview.
+         */
+        Bitmap bmp = null;
+        try {
+            bmp = MediaStore.Images.Media.getBitmap(this.getContentResolver(), mImageCaptureUri);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (bmp != null) {
+//            ImageObj imageObj = new ImageObj(bmp);
+//            /*--------------------------*/
+//            Bitmap grayscaleBitmap = Grayscale.grayScaleImage(photo);
+//            Bitmap gaussianblurBitmap = new GaussianBlur(grayscaleBitmap).doGaussianBlur( 16, 0);
+//            Bitmap dilationGrayscaleBmp = Dilation.grayscaleImage(gaussianblurBitmap);
+//            Bitmap cannyBitmap = CannyEdgeDetector.process(dilationGrayscaleBmp, 50);
+//            Bitmap dilationBinaryBmp = Dilation.binaryImage(cannyBitmap, true);
 //                    Bitmap erosionBitmap = erosionBitmap(dilationBmp);
 
-                    Bitmap finalBitmap = Bitmap.createBitmap(dilationBinaryBmp, photo.getWidth() * 1/7, photo.getHeight() * 1/7,  photo.getWidth() * 5/7, photo.getHeight() * 5/7);
-                    hitungPanjangLebar.Dimensions(finalBitmap);
-                    /*---------------------------*/
-                    mImageView.setImageBitmap(finalBitmap);
-                    Log.d("PanjangLebar", "panjang sesudah crop -> "+finalBitmap.getWidth()+" lebar sesudah crop -> "+finalBitmap.getHeight());
-                }
-
-                File f = new File(mImageCaptureUri.getPath());
-                /**
-                 * Delete the temporary image
-                 */
-                if (f.exists())
-                    f.delete();
+//            Bitmap finalBitmap = Bitmap.createBitmap(dilationBinaryBmp, photo.getWidth() * 1/7, photo.getHeight() * 1/7,  photo.getWidth() * 5/7, photo.getHeight() * 5/7);
+            bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
+            bmp = Bitmap.createScaledBitmap(bmp, ((int) (bmp.getWidth() * 0.25)), ((int) (bmp.getHeight() * 0.25)), false);
+            bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
 
 
+            /*---------------------------*/
+            mImageView.setImageBitmap(bmp);
+            loadedImg = bmp;
+//            Log.d("PanjangLebar", "panjang sesudah crop -> "+finalBitmap.getWidth()+" lebar sesudah crop -> "+finalBitmap.getHeight());
+        }
 
+        File f = new File(mImageCaptureUri.getPath());
+        /**
+         * Delete the temporary image
+         */
+        if (f.exists())
+            f.delete();
     }
 
     private void doCrop() {
@@ -289,8 +368,8 @@ public class MainActivity extends AppCompatActivity {
 //        panjang * 3 * 4
 //        lebar * 7 * 4
 
-        cropped = Bitmap.createBitmap(bmp, bmp.getWidth() / 3, bmp.getHeight() * 3 / 7,  bmp.getWidth() / 3, bmp.getHeight() * 1 / 7);
-//        cropped = Bitmap.createScaledBitmap(cropped, bmp.getScaledWidth(50), bmp.getScaledHeight(50), false);
+//        cropped = Bitmap.createBitmap(bmp, bmp.getWidth() / 3, bmp.getHeight() * 3 / 7,  bmp.getWidth() / 3, bmp.getHeight() * 1 / 7);
+//        cropped = Bitmap.createScaledBitmap(cropped, bmp.getScaledWidth(25), bmp.getScaledHeight(25), false);
 
     }
 

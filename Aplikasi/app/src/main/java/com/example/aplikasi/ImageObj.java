@@ -1,17 +1,21 @@
 package com.example.aplikasi;
 
+import android.graphics.Bitmap;
 import android.media.Image;
+import android.net.Uri;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import javax.imageio.ImageIO;
-import java.io.*;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ImageObj {
-    private String path;
+    private Uri uri;
     private File img_file_handler;
-    private Image bmp;
+    private Bitmap bmp;
     private int gaussFactor, gaussOffset, cannyThreshold;
 
     private Image processed_bmp;
@@ -20,35 +24,18 @@ public class ImageObj {
 
     }
 
-    public ImageObj(String path){
-        this.path = path;
+    public ImageObj(Bitmap bmp){
+        this.uri = uri;
 
-        this.img_file_handler = new File(this.path);
         this.gaussFactor = 0;
         this.gaussOffset = 0;
         this.cannyThreshold = 0;
 
-        this.bmp = null;
-        try {
-            this.bmp = ImageIO.read(img_file_handler);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        this.bmp = bmp;
     }
 
-    public static BufferedImage resizeImage(BufferedImage img, int width, int height){
-        Image img_resized = img.getScaledInstance(width, height, Image.SCALE_DEFAULT);
-
-        // Create a buffered image with transparency
-        BufferedImage bimage = new BufferedImage(width, height, img.getType());
-
-        // Draw the image on to the buffered image
-        Graphics2D bGr = bimage.createGraphics();
-        bGr.drawImage(img_resized, 0, 0, null);
-        bGr.dispose();
-
-        // Return the buffered image
-        return bimage;
+    public static Bitmap resizeImage(Bitmap img, int width, int height){
+        return Bitmap.createScaledBitmap(img, width, height, false);
     }
 
 
@@ -65,19 +52,25 @@ public class ImageObj {
         this.cannyThreshold = cannyThreshold;
     }
 
-    public void importConfiguration(String path){
-        String jsonString = "";
-        try(File fileReader = new File(path)) {
-            int ch = fileReader.read();
-            while(ch != -1) {
-                jsonString += (char)ch;
-                ch = fileReader.read();
+    public void importConfiguration(BufferedReader reader){
+        String line = "";
+        StringBuilder builder = new StringBuilder();
+        while (true) {
+            try {
+                if (!((line = reader.readLine()) != null)) break;
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (FileNotFoundException e) {
-            // exception handling
-        } catch (IOException e) {
-            // exception handling
+            builder.append(line);
         }
+            if (reader != null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        String jsonString = builder.toString();
 
         HashMap<String, Double> configs;
         Gson gsonBuilder = new GsonBuilder().create();
@@ -86,8 +79,6 @@ public class ImageObj {
         setGaussFactor(configs.get("gaussFactor").intValue());
         setGaussOffset(configs.get("gaussOffset").intValue());
         setCannyThreshold(configs.get("cannyThreshold").intValue());
-
-
     }
 
     public void exportConfiguration(String path){
@@ -97,11 +88,11 @@ public class ImageObj {
         configs.put("cannyThreshold", cannyThreshold);
         Gson gson = new Gson();
         String jsonString = gson.toJson(configs);
-        try(FileWriter fileWriter = new FileWriter(path)) {
-            fileWriter.write(jsonString);
-        } catch (IOException e) {
-            System.out.println(e.getLocalizedMessage());
-        }
+//        try(FileWriter fileWriter = new FileWriter(path)) {
+//            fileWriter.write(jsonString);
+//        } catch (IOException e) {
+//            System.out.println(e.getLocalizedMessage());
+//        }
     }
 
     public Map<String, Integer> getObjectDimension() {
@@ -111,21 +102,20 @@ public class ImageObj {
         int Ymin = Integer.MAX_VALUE;
 
 
-        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
-        bmp = resizeImage(bmp, (int) (bmp.getWidth() * 0.25), (int) (bmp.getHeight() * 0.25));
+        bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
+        bmp = Bitmap.createScaledBitmap(bmp, ((int) (bmp.getWidth() * 0.25)), ((int) (bmp.getHeight() * 0.25)), false);
         bmp = (new GaussianBlur(bmp)).doGaussianBlur(gaussFactor, gaussOffset);
         bmp = CannyEdgeDetector.process(bmp, cannyThreshold);
         bmp = Dilation.binaryImage(bmp, true);
         bmp = Erosion.binaryImage(bmp, false);
 
 
-        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
+        bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
 
-        this.processed_bmp = bmp;
 
         for (int x = 0; x < bmp.getWidth(); x++) {
             for (int y = 0; y < bmp.getHeight(); y++) {
-                boolean isWhitePixel = (bmp.getRGB(x, y) == 0xFFFFFFFF);
+                boolean isWhitePixel = (bmp.getPixel(x, y) == 0xFFFFFFFF);
                 if (isWhitePixel) {
                     Xmax = (x > Xmax) ? x : Xmax;
                     Xmin = (x < Xmin) ? x : Xmin;
