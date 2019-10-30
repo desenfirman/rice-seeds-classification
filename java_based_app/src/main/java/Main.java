@@ -387,7 +387,7 @@ public class Main {
                         ArrayList<String> result = nv.predict(new ArrayList<Double>(Arrays.asList(
                                 width, height)
                         ));
-                        logTextPane.setText(logTextPane.getText() + "Image classified as " + result.get(0) + " with probability " + result.get(1) + ". \n");
+                        logTextPane.setText("Width: " + width + " Height: " + height + "\n" + logTextPane.getText() + "Image classified as " + result.get(0) + " with probability " + result.get(1) + ". \n");
                     }
                 };
                 classifyImage.start();
