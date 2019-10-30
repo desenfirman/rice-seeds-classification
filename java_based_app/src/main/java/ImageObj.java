@@ -115,8 +115,8 @@ public class ImageObj {
         bmp = resizeImage(bmp, (int) (bmp.getWidth() * 0.25), (int) (bmp.getHeight() * 0.25));
         bmp = (new GaussianBlur(bmp)).doGaussianBlur(gaussFactor, gaussOffset);
         bmp = CannyEdgeDetector.process(bmp, cannyThreshold);
-        bmp = Dilation.binaryImage(bmp, true);
-        bmp = Erosion.binaryImage(bmp, false);
+        bmp = Dilation.binaryImage(bmp, false);
+        bmp = Erosion.binaryImage(bmp, true);
 
 
         bmp = bmp.getSubimage(bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
