@@ -14,14 +14,15 @@ import java.util.Map;
 public class BuildDataset {
     private String path;
     private ArrayList<ArrayList<String>> dataset;
-    private int gaussFactor, gaussOffset, cannyThreshold;
+    private int gaussFactor, gaussOffset, cannyThreshold, minimalArea;
 
-    public BuildDataset(String path, int gaussFactor, int gaussOffset, int cannyThreshold){
+    public BuildDataset(String path, int gaussFactor, int gaussOffset, int cannyThreshold, int min_area){
         this.path = path;
         this.dataset = new ArrayList<ArrayList<String>>();
         this.gaussFactor = gaussFactor;
         this.gaussOffset = gaussOffset;
         this.cannyThreshold = cannyThreshold;
+        this.minimalArea = min_area;
         this.processDirectory();
     }
 
@@ -34,12 +35,15 @@ public class BuildDataset {
                 ImageObj imageObj = new ImageObj(f.toString());
                 imageObj.setGaussFactor(gaussFactor);
                 imageObj.setGaussOffset(gaussOffset);
-                imageObj.setCannyThreshold(gaussOffset);
+                imageObj.setCannyThreshold(cannyThreshold);
                 Map<String, Integer> dimension =  imageObj.getObjectDimension();
-                String width = dimension.get("width").toString();
-                String height = dimension.get("height").toString();
+                Integer width = dimension.get("width");
+                Integer height = dimension.get("height");
+                if (width * height < minimalArea){
+                    continue;
+                }
                 String class_name = dir.getName();
-                this.dataset.add(new ArrayList<>(Arrays.asList(width, height, class_name)));
+                this.dataset.add(new ArrayList<>(Arrays.asList(width.toString(), height.toString(), class_name)));
             }
         }
         System.out.println(dataset);
