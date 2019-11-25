@@ -39,9 +39,7 @@ public class ImageObj {
     public static Bitmap resizeImage(Bitmap img, int width, int height){
         return Bitmap.createScaledBitmap(img, width, height, false);
     }
-
-
-
+    
     public void setGaussFactor(int gaussFactor) {
         this.gaussFactor = gaussFactor;
     }
