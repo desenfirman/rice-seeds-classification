@@ -36,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonClassify, buttonUploadImg, buttonLoadConfig, buttonLoadModel;
     int scale;
     private PanjangLebar hitungPanjangLebar;
-    private Dilation hitungDilation;
     private String mCurrentPhotoPath;
 
     private Bitmap loadedImg;
@@ -268,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
 
         textInformation.setText("Width: " + width + "Height: " + height +  "\nImage classified as " + result.get(0) + " with probability value " + result.get(1));
 
+        mImageView.setImageBitmap(imageObj.getBmp());
 
 
         int gaussFactor, gaussOffset, cannyThreshold;
@@ -377,10 +377,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    //dilate.java
-    private Bitmap dilationBitmap (Bitmap srcBitmap) {
-        return Dilation.binaryImage(srcBitmap, false);
-    }
+
 
 
 }

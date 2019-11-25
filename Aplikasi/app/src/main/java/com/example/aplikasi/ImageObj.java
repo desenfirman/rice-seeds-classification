@@ -7,6 +7,11 @@ import android.net.Uri;
 import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -23,10 +28,14 @@ public class ImageObj {
     private Image processed_bmp;
 
     public ImageObj(){
-
+        if (!OpenCVLoader.initDebug())
+            Log.e("OpenCv", "Unable to load OpenCV");
+        else
+            Log.d("OpenCv", "OpenCV loaded");
     }
 
     public ImageObj(Bitmap bmp){
+        this();
         this.uri = uri;
 
         this.gaussFactor = 0;
@@ -39,7 +48,7 @@ public class ImageObj {
     public static Bitmap resizeImage(Bitmap img, int width, int height){
         return Bitmap.createScaledBitmap(img, width, height, false);
     }
-    
+
     public void setGaussFactor(int gaussFactor) {
         this.gaussFactor = gaussFactor;
     }
@@ -100,14 +109,44 @@ public class ImageObj {
         int Xmin = Integer.MAX_VALUE;
         int Ymax = Integer.MIN_VALUE;
         int Ymin = Integer.MAX_VALUE;
-
-
         bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
         bmp = Bitmap.createScaledBitmap(bmp, ((int) (bmp.getWidth() * 0.25)), ((int) (bmp.getHeight() * 0.25)), false);
-        bmp = (new GaussianBlur(bmp)).doGaussianBlur(gaussFactor, gaussOffset);
-        bmp = CannyEdgeDetector.process(bmp, cannyThreshold);
-        bmp = Dilation.binaryImage(bmp, false);
-        bmp = Erosion.binaryImage(bmp, true);
+
+        Bitmap bmp32 = bmp.copy(Bitmap.Config.RGB_565, true);
+        Mat bmpMat = new Mat();
+        Utils.bitmapToMat(bmp32, bmpMat);
+
+
+        Mat grayImage = new Mat();
+        Mat detectedEdges = new Mat();
+
+        Imgproc.cvtColor(bmpMat, grayImage, Imgproc.COLOR_BGR2GRAY);
+
+        // reduce noise with a 3x3 kernel
+        Imgproc.blur(grayImage, detectedEdges, new Size(7, 7));
+
+        // canny detector, with ratio of lower:upper threshold of 3:1
+        Imgproc.Canny(detectedEdges, detectedEdges, 15, 15 * 3);
+
+        // using Canny's output as a mask, display the result
+        Mat dest = new Mat();
+        dest = detectedEdges;
+
+        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_DILATE, new  Size(7, 7));
+
+        Imgproc.dilate(dest, dest, element);
+
+        Utils.matToBitmap(dest, bmp);
+
+
+
+
+
+//
+//        bmp = (new GaussianBlur(bmp)).doGaussianBlur(gaussFactor, gaussOffset);
+//        bmp = CannyEdgeDetector.process(bmp, cannyThreshold);
+//        bmp = Dilation.binaryImage(bmp, false);
+//        bmp = Erosion.binaryImage(bmp, true);
 
 
         bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
@@ -142,5 +181,9 @@ public class ImageObj {
         w_h.put("height", height);
 
         return w_h;
+    }
+
+    public Bitmap getBmp() {
+        return bmp;
     }
 }
