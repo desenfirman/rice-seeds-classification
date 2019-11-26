@@ -217,6 +217,11 @@ public class NaiveBayes {
         importModel(model_path);
     }
 
+    public NaiveBayes(HashMap<String, ArrayList<DescriptiveStats>> model){
+        this.model = model;
+    }
+
+
 
     public static void kCrossValidation(String input_path, boolean hasHeader, int k_folds){
 

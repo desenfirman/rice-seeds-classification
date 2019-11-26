@@ -17,7 +17,7 @@ public class ImageObj {
     private Uri uri;
     private Bitmap bmp;
     private Double gblur_kernel_size, canny_threshold, canny_range, dilate_size, erode_size;
-    
+
     public ImageObj(){
         if (!OpenCVLoader.initDebug())
             Log.e("OpenCv", "Unable to load OpenCV");

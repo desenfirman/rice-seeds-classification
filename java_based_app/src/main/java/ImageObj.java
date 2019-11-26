@@ -1,18 +1,24 @@
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+
 
 public class ImageObj {
     private String path;
     private File img_file_handler;
     private BufferedImage bmp;
-    private int gaussFactor, gaussOffset, cannyThreshold;
+    private Double gblur_kernel_size, canny_threshold, canny_range, dilate_size, erode_size;
 
     private BufferedImage processed_bmp;
 
@@ -24,9 +30,8 @@ public class ImageObj {
         this.path = path;
 
         this.img_file_handler = new File(this.path);
-        this.gaussFactor = 0;
-        this.gaussOffset = 0;
-        this.cannyThreshold = 0;
+        this.gblur_kernel_size = this.canny_range = this.canny_threshold = this.dilate_size = this.erode_size = 0.0;
+
 
         this.bmp = null;
         try {
@@ -35,6 +40,29 @@ public class ImageObj {
             e.printStackTrace();
         }
     }
+
+
+    public void setGblur_kernel_size(Double gblur_kernel_size) {
+        this.gblur_kernel_size = gblur_kernel_size;
+    }
+
+    public void setCanny_threshold(Double canny_threshold) {
+        this.canny_threshold = canny_threshold;
+    }
+
+    public void setCanny_range(Double canny_range) {
+        this.canny_range = canny_range;
+    }
+
+    public void setDilate_size(Double dilate_size) {
+        this.dilate_size = dilate_size;
+    }
+
+    public void setErode_size(Double erode_size) {
+        this.erode_size = erode_size;
+    }
+
+
 
     public static BufferedImage resizeImage(BufferedImage img, int width, int height){
         Image img_resized = img.getScaledInstance(width, height, Image.SCALE_DEFAULT);
@@ -52,49 +80,14 @@ public class ImageObj {
     }
 
 
-
-    public void setGaussFactor(int gaussFactor) {
-        this.gaussFactor = gaussFactor;
-    }
-
-    public void setGaussOffset(int gaussOffset) {
-        this.gaussOffset = gaussOffset;
-    }
-
-    public void setCannyThreshold(int cannyThreshold) {
-        this.cannyThreshold = cannyThreshold;
-    }
-
-    public void importConfiguration(String path){
-        String jsonString = "";
-        try(FileReader fileReader = new FileReader(path)) {
-            int ch = fileReader.read();
-            while(ch != -1) {
-                jsonString += (char)ch;
-                ch = fileReader.read();
-            }
-        } catch (FileNotFoundException e) {
-            // exception handling
-        } catch (IOException e) {
-            // exception handling
-        }
-
-        HashMap<String, Double> configs;
-        Gson gsonBuilder = new GsonBuilder().create();
-        configs = gsonBuilder.fromJson(jsonString, HashMap.class);
-
-        setGaussFactor(configs.get("gaussFactor").intValue());
-        setGaussOffset(configs.get("gaussOffset").intValue());
-        setCannyThreshold(configs.get("cannyThreshold").intValue());
-
-
-    }
-
     public void exportConfiguration(String path){
-        HashMap<String, Integer> configs = new HashMap<String, Integer>();
-        configs.put("gaussFactor", gaussFactor);
-        configs.put("gaussOffset", gaussOffset);
-        configs.put("cannyThreshold", cannyThreshold);
+        HashMap<String, Double> configs = new HashMap<String, Double>();
+        configs.put("gblur_kernel_size", gblur_kernel_size);
+        configs.put("canny_threshold", canny_threshold);
+        configs.put("canny_range", canny_range);
+        configs.put("dilate_size", dilate_size);
+        configs.put("erode_size", erode_size);
+
         Gson gson = new Gson();
         String jsonString = gson.toJson(configs);
         try(FileWriter fileWriter = new FileWriter(path)) {
@@ -110,16 +103,37 @@ public class ImageObj {
         int Ymax = Integer.MIN_VALUE;
         int Ymin = Integer.MAX_VALUE;
 
-
-        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
-        bmp = resizeImage(bmp, (int) (bmp.getWidth() * 0.25), (int) (bmp.getHeight() * 0.25));
-        bmp = (new GaussianBlur(bmp)).doGaussianBlur(gaussFactor, gaussOffset);
-        bmp = CannyEdgeDetector.process(bmp, cannyThreshold);
-        bmp = Dilation.binaryImage(bmp, false);
-        bmp = Erosion.binaryImage(bmp, true);
+        Mat bmpMat = new Mat(bmp.getHeight(), bmp.getWidth(), CvType.CV_8UC3);
+        byte[] data = ((DataBufferByte) bmp.getRaster().getDataBuffer()).getData();
+        bmpMat.put(0,0, data);
 
 
-        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
+        Mat grayImage = new Mat();
+        Mat detectedEdges = new Mat();
+
+        Imgproc.cvtColor(bmpMat, grayImage, Imgproc.COLOR_BGR2GRAY);
+
+        // reduce noise with a input kernel size
+        Imgproc.blur(grayImage, detectedEdges, new Size(this.gblur_kernel_size, this.gblur_kernel_size));
+
+        // canny detector, with ratio of lower threshold & upper threshold is canny_range times ratio
+        Imgproc.Canny(detectedEdges, detectedEdges, this.canny_threshold, this.canny_threshold * this.canny_range);
+
+        Mat dilate_element = Imgproc.getStructuringElement(Imgproc.MORPH_DILATE, new  Size(this.dilate_size, this.dilate_size));
+        Imgproc.dilate(detectedEdges, detectedEdges, dilate_element);
+
+        Mat erode_element = Imgproc.getStructuringElement(Imgproc.MORPH_ERODE, new  Size(this.erode_size, this.erode_size));
+        Imgproc.erode(detectedEdges, detectedEdges, erode_element);
+
+        byte[] return_buff = new byte[(int) (detectedEdges.total() * detectedEdges.channels())];
+        detectedEdges.get(0, 0, return_buff);
+
+        try {
+            bmp = ImageIO.read(new ByteArrayInputStream(return_buff));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
         this.processed_bmp = bmp;
 

@@ -14,15 +14,18 @@ import java.util.Map;
 public class BuildDataset {
     private String path;
     private ArrayList<ArrayList<String>> dataset;
-    private int gaussFactor, gaussOffset, cannyThreshold, minimalArea;
+    private Double gblur_kernel_size, canny_threshold, canny_range, dilate_size, erode_size, minimalArea;
 
-    public BuildDataset(String path, int gaussFactor, int gaussOffset, int cannyThreshold, int min_area){
+    public BuildDataset(String path, double g_blur_kernel_size, double canny_threshold, double canny_range,
+                        double dilation_size, double erode_size, int min_area){
         this.path = path;
         this.dataset = new ArrayList<ArrayList<String>>();
-        this.gaussFactor = gaussFactor;
-        this.gaussOffset = gaussOffset;
-        this.cannyThreshold = cannyThreshold;
-        this.minimalArea = min_area;
+        this.gblur_kernel_size = g_blur_kernel_size;
+        this.canny_threshold = canny_threshold;
+        this.canny_range = canny_range;
+        this.dilate_size = dilation_size;
+        this.erode_size = erode_size;
+        this.minimalArea = (double) min_area;
         this.processDirectory();
     }
 
@@ -33,9 +36,11 @@ public class BuildDataset {
             ArrayList<File> files = this.getFileListing(dir.toString()) ;
             for ( File f: files){
                 ImageObj imageObj = new ImageObj(f.toString());
-                imageObj.setGaussFactor(gaussFactor);
-                imageObj.setGaussOffset(gaussOffset);
-                imageObj.setCannyThreshold(cannyThreshold);
+                imageObj.setGblur_kernel_size(gblur_kernel_size);
+                imageObj.setCanny_threshold(canny_threshold);
+                imageObj.setCanny_range(canny_range);
+                imageObj.setDilate_size(dilate_size);
+                imageObj.setErode_size(erode_size);
                 Map<String, Integer> dimension =  imageObj.getObjectDimension();
                 Integer width = dimension.get("width");
                 Integer height = dimension.get("height");
