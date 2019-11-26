@@ -2,31 +2,22 @@ package com.example.aplikasi;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.media.Image;
 import android.net.Uri;
 import android.util.Log;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ImageObj {
     private Uri uri;
-    private File img_file_handler;
     private Bitmap bmp;
-    private int gaussFactor, gaussOffset, cannyThreshold;
-
-    private Image processed_bmp;
-
+    private Double gblur_kernel_size, canny_threshold, canny_range, dilate_size, erode_size;
+    
     public ImageObj(){
         if (!OpenCVLoader.initDebug())
             Log.e("OpenCv", "Unable to load OpenCV");
@@ -38,71 +29,31 @@ public class ImageObj {
         this();
         this.uri = uri;
 
-        this.gaussFactor = 0;
-        this.gaussOffset = 0;
-        this.cannyThreshold = 0;
-
+        this.gblur_kernel_size = this.canny_range = this.canny_threshold = this.dilate_size = this.erode_size = 0.0;
         this.bmp = bmp;
     }
 
-    public static Bitmap resizeImage(Bitmap img, int width, int height){
-        return Bitmap.createScaledBitmap(img, width, height, false);
+
+    public void setGblur_kernel_size(Double gblur_kernel_size) {
+        this.gblur_kernel_size = gblur_kernel_size;
     }
 
-    public void setGaussFactor(int gaussFactor) {
-        this.gaussFactor = gaussFactor;
+    public void setCanny_threshold(Double canny_threshold) {
+        this.canny_threshold = canny_threshold;
     }
 
-    public void setGaussOffset(int gaussOffset) {
-        this.gaussOffset = gaussOffset;
+    public void setCanny_range(Double canny_range) {
+        this.canny_range = canny_range;
     }
 
-    public void setCannyThreshold(int cannyThreshold) {
-        this.cannyThreshold = cannyThreshold;
+    public void setDilate_size(Double dilate_size) {
+        this.dilate_size = dilate_size;
     }
 
-    public void importConfiguration(BufferedReader reader){
-        String line = "";
-        StringBuilder builder = new StringBuilder();
-        while (true) {
-            try {
-                if (!((line = reader.readLine()) != null)) break;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            builder.append(line);
-        }
-            if (reader != null){
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        String jsonString = builder.toString();
-
-        HashMap<String, Double> configs;
-        Gson gsonBuilder = new GsonBuilder().create();
-        configs = gsonBuilder.fromJson(jsonString, HashMap.class);
-
-        setGaussFactor(configs.get("gaussFactor").intValue());
-        setGaussOffset(configs.get("gaussOffset").intValue());
-        setCannyThreshold(configs.get("cannyThreshold").intValue());
+    public void setErode_size(Double erode_size) {
+        this.erode_size = erode_size;
     }
 
-    public void exportConfiguration(String path){
-        HashMap<String, Integer> configs = new HashMap<String, Integer>();
-        configs.put("gaussFactor", gaussFactor);
-        configs.put("gaussOffset", gaussOffset);
-        configs.put("cannyThreshold", cannyThreshold);
-        Gson gson = new Gson();
-        String jsonString = gson.toJson(configs);
-//        try(FileWriter fileWriter = new FileWriter(path)) {
-//            fileWriter.write(jsonString);
-//        } catch (IOException e) {
-//            System.out.println(e.getLocalizedMessage());
-//        }
-    }
 
     public Map<String, Integer> getObjectDimension() {
         int Xmax = Integer.MIN_VALUE;
@@ -122,34 +73,19 @@ public class ImageObj {
 
         Imgproc.cvtColor(bmpMat, grayImage, Imgproc.COLOR_BGR2GRAY);
 
-        // reduce noise with a 3x3 kernel
-        Imgproc.blur(grayImage, detectedEdges, new Size(7, 7));
+        // reduce noise with a input kernel size
+        Imgproc.blur(grayImage, detectedEdges, new Size(this.gblur_kernel_size, this.gblur_kernel_size));
 
-        // canny detector, with ratio of lower:upper threshold of 3:1
-        Imgproc.Canny(detectedEdges, detectedEdges, 15, 15 * 3);
+        // canny detector, with ratio of lower threshold & upper threshold is canny_range times ratio
+        Imgproc.Canny(detectedEdges, detectedEdges, this.canny_threshold, this.canny_threshold * this.canny_range);
 
-        // using Canny's output as a mask, display the result
-        Mat dest = new Mat();
-        dest = detectedEdges;
+        Mat dilate_element = Imgproc.getStructuringElement(Imgproc.MORPH_DILATE, new  Size(this.dilate_size, this.dilate_size));
+        Imgproc.dilate(detectedEdges, detectedEdges, dilate_element);
 
-        Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_DILATE, new  Size(7, 7));
+        Mat erode_element = Imgproc.getStructuringElement(Imgproc.MORPH_ERODE, new  Size(this.erode_size, this.erode_size));
+        Imgproc.erode(detectedEdges, detectedEdges, erode_element);
+        Utils.matToBitmap(detectedEdges, bmp);
 
-        Imgproc.dilate(dest, dest, element);
-
-        Utils.matToBitmap(dest, bmp);
-
-
-
-
-
-//
-//        bmp = (new GaussianBlur(bmp)).doGaussianBlur(gaussFactor, gaussOffset);
-//        bmp = CannyEdgeDetector.process(bmp, cannyThreshold);
-//        bmp = Dilation.binaryImage(bmp, false);
-//        bmp = Erosion.binaryImage(bmp, true);
-
-
-        bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
 
         int count = 0;
         for (int x = 0; x < bmp.getWidth(); x++) {
@@ -179,6 +115,8 @@ public class ImageObj {
         Map<String, Integer> w_h = new HashMap<String, Integer>();
         w_h.put("width", width);
         w_h.put("height", height);
+
+
 
         return w_h;
     }

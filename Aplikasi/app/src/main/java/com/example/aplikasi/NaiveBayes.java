@@ -1,13 +1,8 @@
 package com.example.aplikasi;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -168,43 +163,12 @@ public class NaiveBayes {
         makeYPrediction();
     }
 
-
-    public void importModel(BufferedReader reader){
-        String line = "";
-        StringBuilder builder = new StringBuilder();
-        while (true) {
-            try {
-                if (!((line = reader.readLine()) != null)) break;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            builder.append(line);
-        }
-        if (reader != null){
-            try {
-                reader.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        String jsonString = builder.toString();
-
-
-        Type mapType = new TypeToken<Map<String, ArrayList<DescriptiveStats>>>(){}.getType();
-        Gson gsonBuilder = new GsonBuilder().create();
-        Map<String, ArrayList<DescriptiveStats>> loaded_model = gsonBuilder.fromJson(jsonString, mapType);
-
-        this.model = new HashMap<String, ArrayList<DescriptiveStats>>(loaded_model);
-    }
-
-
     public NaiveBayes(ArrayList<ArrayList<Double>> x_dataset, ArrayList<String> y_dataset){
         this.x_dataset = x_dataset;
         this.y_dataset = y_dataset;
         buildModel();
         makeYPrediction();
     }
-
 
     public NaiveBayes(String input_path, boolean hasHeader){
         loadDataset(input_path, hasHeader);
@@ -213,8 +177,8 @@ public class NaiveBayes {
 //        System.out.println(getAccuracyMetric());
     }
 
-    public NaiveBayes(BufferedReader model_path){
-        importModel(model_path);
+    public NaiveBayes(HashMap<String, ArrayList<DescriptiveStats>> model){
+        this.model = model;
     }
 
 
@@ -224,8 +188,6 @@ public class NaiveBayes {
 
     public static void main(String[] args) {
         NaiveBayes nv = new NaiveBayes("out/data.csv", true);
-//        nv.exportModel("out/model.json");
-//        nv.importModel("out/model.json");
     }
 
 }

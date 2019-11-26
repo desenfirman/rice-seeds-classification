@@ -33,13 +33,13 @@ public class MainActivity extends AppCompatActivity {
     private ImageView mImageView;
     private AlertDialog dialog;
     private TextView textInformation;
-    private Button buttonClassify, buttonUploadImg, buttonLoadConfig, buttonLoadModel;
+    private Button buttonClassify, buttonUploadImg, buttonLoadConfig;
     int scale;
     private PanjangLebar hitungPanjangLebar;
     private String mCurrentPhotoPath;
 
     private Bitmap loadedImg;
-    private Uri mModelUri, mConfigUri;
+    private Uri mConfigUri;
 
     private static final int PICK_FROM_CAMERA = 1;
     private static final int CROP_FROM_CAMERA = 2;
@@ -60,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
         buttonUploadImg = (Button) findViewById(R.id.SelectImageBtn);
         buttonClassify = (Button) findViewById(R.id.ClassifyBtn);
         buttonLoadConfig = (Button) findViewById(R.id.LoadConfigsBtn);
-        buttonLoadModel = (Button) findViewById(R.id.LoadModelBtn);
         mImageView = (ImageView) findViewById(R.id.ProfilePicIV);
         textInformation = (TextView)findViewById(R.id.textViewInformation);
 
@@ -72,19 +71,6 @@ public class MainActivity extends AppCompatActivity {
                 intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 startActivityForResult(Intent.createChooser(intent, "Complete action using"), LOAD_CONFIGS);
-            }
-        });
-
-        buttonLoadModel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent();
-                intent.setType("file/*.json");
-                intent.setType("application/octet-stream");
-                intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-
-                startActivityForResult(Intent.createChooser(intent, "Complete action using"), LOAD_MODEL);
             }
         });
 
@@ -236,33 +222,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void classifyImage(){
-        if (mConfigUri == null || mModelUri == null || loadedImg == null){
-            textInformation.setText("Error: Please check for all config, classifier model and image are already loaded.");
+        if (mConfigUri == null || loadedImg == null){
+            textInformation.setText("Error: Please check for config and image are already loaded.");
             return;
         }
 
         BufferedReader config_reader = null;
+        ConfigReader cfg = null;
         try {
             config_reader = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(mConfigUri)));
+            cfg = new ConfigReader(config_reader);
+            config_reader.close();
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
+        if (cfg == null){
+            textInformation.setText("Config Error, please re-check your config format.");
+            return;
+        }
+
         ImageObj imageObj = new ImageObj(loadedImg);
-        imageObj.importConfiguration(config_reader);
+        imageObj.setGblur_kernel_size(cfg.getGblur_kernel_size());
+        imageObj.setCanny_threshold(cfg.getCanny_threshold());
+        imageObj.setCanny_range(cfg.getCanny_range());
+        imageObj.setDilate_size(cfg.getDilate_size());
+        imageObj.setErode_size(cfg.getErode_size());
 
         Map<String, Integer> w_h = imageObj.getObjectDimension();
         int width = w_h.get("width");
         int height = w_h.get("height");
 
-        BufferedReader model_reader = null;
-        try {
-            model_reader = new BufferedReader(new InputStreamReader(getContentResolver().openInputStream(mModelUri)));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        NaiveBayes nv = new NaiveBayes(model_reader);
+        NaiveBayes nv = new NaiveBayes(cfg.getModel());
         ArrayList<String> result = nv.predict(new ArrayList<Double>(Arrays.asList(((double) width), ((double) height))));
 
         textInformation.setText("Width: " + width + "Height: " + height +  "\nImage classified as " + result.get(0) + " with probability value " + result.get(1));
@@ -296,9 +289,6 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case LOAD_CONFIGS:
                 mConfigUri = data.getData();
-                break;
-            case LOAD_MODEL:
-                mModelUri = data.getData();
                 break;
         }
 
