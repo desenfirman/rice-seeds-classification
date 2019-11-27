@@ -48,11 +48,6 @@
                     android:layout_height="match_parent"
                     android:text="Load a Config file" android:layout_weight="1"
                     />
-            <Button
-                    android:id="@+id/LoadModelBtn"
-                    android:text="Load a Classifier Model"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:layout_weight="1"/>
         </LinearLayout>
         <Button
                 android:id="@+id/SelectImageBtn"
