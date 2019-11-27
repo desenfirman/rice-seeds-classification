@@ -1,10 +1,7 @@
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,26 +31,47 @@ public class ConfigReader {
         JsonParser parser = new JsonParser();
         JsonObject array = parser.parse(jsonString).getAsJsonObject();
         JsonElement config = array.get("imgproc_config");
-        JsonElement model = array.get("model");
 
         Gson gsonBuilder = new GsonBuilder().create();
 
         HashMap<String, Double> config_map;
         config_map = gsonBuilder.fromJson(config.toString(), HashMap.class);
 
-        Type mapType = new TypeToken<Map<String, ArrayList<DescriptiveStats>>>(){}.getType();
-        Map<String, ArrayList<DescriptiveStats>> model_map = gsonBuilder.fromJson(model, mapType);
-
         this.gblur_kernel_size = config_map.get("gblur_kernel_size");
         this.canny_threshold = config_map.get("canny_threshold");
         this.canny_range = config_map.get("canny_range");
         this.dilate_size = config_map.get("dilate_size");
         this.erode_size = config_map.get("erode_size");
+
+        if (!array.has("model")) return;
+
+        JsonElement model = array.get("model");
+        Type mapType = new TypeToken<Map<String, ArrayList<DescriptiveStats>>>(){}.getType();
+        Map<String, ArrayList<DescriptiveStats>> model_map = gsonBuilder.fromJson(model, mapType);
         this.model = new HashMap<String, ArrayList<DescriptiveStats>>(model_map);
     }
 
     public void exportConfig(String path){
+        Gson gson = new Gson();
+        HashMap<String, Double> configs = new HashMap<String, Double>();
+        configs.put("gblur_kernel_size", gblur_kernel_size);
+        configs.put("canny_threshold", canny_threshold);
+        configs.put("canny_range", canny_range);
+        configs.put("dilate_size", dilate_size);
+        configs.put("erode_size", erode_size);
 
+        JsonObject config_model = new JsonObject();
+        config_model.add("imgproc_config", gson.toJsonTree(configs));
+        if (this.model != null){
+            config_model.add("model", gson.toJsonTree(this.model));
+        }
+
+
+        try(FileWriter fileWriter = new FileWriter(path)) {
+            fileWriter.write(gson.toJson(config_model));
+        } catch (IOException e) {
+            System.out.println(e.getLocalizedMessage());
+        }
     }
 
     public Double getGblur_kernel_size() {

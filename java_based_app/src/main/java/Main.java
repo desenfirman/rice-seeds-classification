@@ -56,6 +56,8 @@ public class Main {
     private JTextField highThresholdTextField;
     private JTextField dilationSizeTextField;
     private JTextField erodeSizeTextField;
+    private JButton inputConfigPathButton;
+    private JTextField inputConfigTextFieldNaive;
     JFrame frame;
     JFileChooser chooser;
 
@@ -257,13 +259,14 @@ public class Main {
                 logTextPane.setText("Loading. . .");
                 Thread buildDataset = new Thread() {
                     public void run() {
-                        ImageObj imageObj = new ImageObj();
+
+                        ConfigReader imageObj = new ConfigReader();
                         imageObj.setGblur_kernel_size(gaussSize);
                         imageObj.setCanny_threshold(cannyThreshold);
                         imageObj.setCanny_range(cannyRange);
                         imageObj.setDilate_size(dilationSize);
                         imageObj.setErode_size(erodeSize);
-                        imageObj.exportConfiguration(exportImageConfigPathTextField.getText());
+                        imageObj.exportConfig(exportImageConfigPathTextField.getText());
 
 
                         BuildDataset bd = new BuildDataset(inputSourceDatasetDictionaryTextField.getText(),
@@ -289,9 +292,18 @@ public class Main {
                 logTextPane.setText("Loading. . .");
                 Thread buildModel = new Thread() {
                     public void run() {
+                        ConfigReader imgproc_cfg = new ConfigReader(inputConfigTextFieldNaive.getText());
                         NaiveBayes naiveBayes = new NaiveBayes(inputDatasetTextField.getText(), true);
+
                         logTextPane.setText("This model accuracy is " + naiveBayes.getAccuracyMetric() + "%");
-                        naiveBayes.exportModel(outputModelTextField.getText());
+                        ConfigReader cfg_imgproc_model = new ConfigReader();
+                        cfg_imgproc_model.setGblur_kernel_size(imgproc_cfg.getGblur_kernel_size());
+                        cfg_imgproc_model.setCanny_threshold(imgproc_cfg.getCanny_threshold());
+                        cfg_imgproc_model.setCanny_range(imgproc_cfg.getCanny_range());
+                        cfg_imgproc_model.setDilate_size(imgproc_cfg.getDilate_size());
+                        cfg_imgproc_model.setErode_size(imgproc_cfg.getErode_size());
+                        cfg_imgproc_model.setModel(naiveBayes.model);
+                        cfg_imgproc_model.exportConfig(outputModelTextField.getText());
                         logTextPane.setText(logTextPane.getText() + "\nBuild model successful. Classifier model is created on " + outputModelTextField.getText());
                     }
                 };
@@ -354,8 +366,7 @@ public class Main {
 
                         NaiveBayes nv = new NaiveBayes(cfg.getModel());
                         BufferedImage bmp = imageObj.getBmp();
-                        bmp = ImageObj.resizeImage(bmp, (int) (bmp.getWidth() * 0.75), (int) (bmp.getHeight() * 0.75));
-                        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 7, bmp.getHeight() * 1 / 7, bmp.getWidth() * 4 / 7, bmp.getHeight() * 5 / 7);
+                        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 5, bmp.getWidth() * 3 / 5, bmp.getHeight() * 3 / 5);
 
                         imgView.setIcon(new ImageIcon(bmp));
 
@@ -383,6 +394,28 @@ public class Main {
             public void keyReleased(KeyEvent e) {
                 super.keyReleased(e);
                 cannyListener();
+            }
+        });
+        inputConfigPathButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                chooser = new JFileChooser();
+                chooser.setCurrentDirectory(new File("."));
+                chooser.setDialogTitle("Pick a config img_proc file in .json");
+                chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                //
+                // disable the "All files" option.
+                //
+                chooser.setAcceptAllFileFilterUsed(false);
+                chooser.setFileFilter(new FileNameExtensionFilter("JavaScript Object Notation (JSON) file.", "json"));
+                //
+
+                int returnValue = chooser.showOpenDialog(null);
+
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    inputConfigTextFieldNaive.setText(chooser.getSelectedFile().getAbsolutePath());
+                }
+
             }
         });
     }
@@ -584,7 +617,7 @@ public class Main {
         panel12.setLayout(new GridLayoutManager(8, 1, new Insets(0, 0, 0, 0), -1, -1));
         panel11.add(panel12, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         final JPanel panel13 = new JPanel();
-        panel13.setLayout(new GridLayoutManager(3, 3, new Insets(0, 0, 0, 0), -1, -1));
+        panel13.setLayout(new GridLayoutManager(4, 3, new Insets(0, 0, 0, 0), -1, -1));
         panel12.add(panel13, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         final JLabel label17 = new JLabel();
         label17.setFocusable(true);
@@ -594,26 +627,34 @@ public class Main {
         panel13.add(label17, new GridConstraints(0, 0, 1, 3, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JLabel label18 = new JLabel();
         label18.setText("Input dataset path (*.csv)");
-        panel13.add(label18, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel13.add(label18, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         browseInputDatasetButton = new JButton();
         browseInputDatasetButton.setText("Browse");
-        panel13.add(browseInputDatasetButton, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel13.add(browseInputDatasetButton, new GridConstraints(2, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         inputDatasetTextField = new JTextField();
-        panel13.add(inputDatasetTextField, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        panel13.add(inputDatasetTextField, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label19 = new JLabel();
         label19.setText("Output model path (*.json)");
-        panel13.add(label19, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel13.add(label19, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         outputModelTextField = new JTextField();
-        panel13.add(outputModelTextField, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        panel13.add(outputModelTextField, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         browseOutputModelButton = new JButton();
         browseOutputModelButton.setText("Browse");
-        panel13.add(browseOutputModelButton, new GridConstraints(2, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel13.add(browseOutputModelButton, new GridConstraints(3, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        inputConfigTextFieldNaive = new JTextField();
+        panel13.add(inputConfigTextFieldNaive, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        final JLabel label20 = new JLabel();
+        label20.setText("Input configs path (*.json)");
+        panel13.add(label20, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        inputConfigPathButton = new JButton();
+        inputConfigPathButton.setText("Browse");
+        panel13.add(inputConfigPathButton, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel14 = new JPanel();
         panel14.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
         panel12.add(panel14, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        final JLabel label20 = new JLabel();
-        label20.setText("Number of K's");
-        panel14.add(label20, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(80, 34), null, 0, false));
+        final JLabel label21 = new JLabel();
+        label21.setText("Number of K's");
+        panel14.add(label21, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(80, 34), null, 0, false));
         numberOFKTextField.setText("0");
         panel14.add(numberOFKTextField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, 34), null, 0, false));
         final JPanel panel15 = new JPanel();
@@ -629,17 +670,17 @@ public class Main {
         final JPanel panel16 = new JPanel();
         panel16.setLayout(new GridLayoutManager(2, 3, new Insets(0, 0, 0, 0), -1, -1));
         panel12.add(panel16, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        final JLabel label21 = new JLabel();
-        label21.setText("Input image (*.jpg)");
-        panel16.add(label21, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label22 = new JLabel();
+        label22.setText("Input image (*.jpg)");
+        panel16.add(label22, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         inputImageTextField = new JTextField();
         panel16.add(inputImageTextField, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         browseImageButton = new JButton();
         browseImageButton.setText("Browse");
         panel16.add(browseImageButton, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final JLabel label22 = new JLabel();
-        label22.setText("Input configs (*.json)");
-        panel16.add(label22, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label23 = new JLabel();
+        label23.setText("Input configs (*.json)");
+        panel16.add(label23, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         browseImageDetectionConfig = new JButton();
         browseImageDetectionConfig.setText("Browse");
         panel16.add(browseImageDetectionConfig, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -653,11 +694,11 @@ public class Main {
         panel17.add(classifyImageButton, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer8 = new Spacer();
         panel17.add(spacer8, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
-        final JLabel label23 = new JLabel();
-        Font label23Font = this.$$$getFont$$$(null, Font.BOLD, -1, label23.getFont());
-        if (label23Font != null) label23.setFont(label23Font);
-        label23.setText("Test Classifier");
-        panel12.add(label23, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label24 = new JLabel();
+        Font label24Font = this.$$$getFont$$$(null, Font.BOLD, -1, label24.getFont());
+        if (label24Font != null) label24.setFont(label24Font);
+        label24.setText("Test Classifier");
+        panel12.add(label24, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel18 = new JPanel();
         panel18.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         panel12.add(panel18, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, new Dimension(-1, 150), null, null, 0, false));
@@ -672,11 +713,11 @@ public class Main {
         final JPanel panel19 = new JPanel();
         panel19.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
         rootPanel.add(panel19, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        final JLabel label24 = new JLabel();
-        Font label24Font = this.$$$getFont$$$(null, Font.BOLD, 14, label24.getFont());
-        if (label24Font != null) label24.setFont(label24Font);
-        label24.setText("Log");
-        panel19.add(label24, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label25 = new JLabel();
+        Font label25Font = this.$$$getFont$$$(null, Font.BOLD, 14, label25.getFont());
+        if (label25Font != null) label25.setFont(label25Font);
+        label25.setText("Log");
+        panel19.add(label25, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel20 = new JPanel();
         panel20.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         panel19.add(panel20, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, new Dimension(-1, 50), null, null, 0, false));
