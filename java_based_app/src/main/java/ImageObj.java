@@ -1,8 +1,7 @@
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
+import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import javax.imageio.ImageIO;
@@ -23,10 +22,12 @@ public class ImageObj {
     private BufferedImage processed_bmp;
 
     public ImageObj(){
-
+        nu.pattern.OpenCV.loadShared();
+        System.loadLibrary(org.opencv.core.Core.NATIVE_LIBRARY_NAME);
     }
 
     public ImageObj(String path){
+        this();
         this.path = path;
 
         this.img_file_handler = new File(this.path);
@@ -103,6 +104,9 @@ public class ImageObj {
         int Ymax = Integer.MIN_VALUE;
         int Ymin = Integer.MAX_VALUE;
 
+        bmp = bmp.getSubimage(bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
+        bmp = resizeImage(bmp, (int) (bmp.getWidth() * 0.25), (int) (bmp.getHeight() * 0.25));
+
         Mat bmpMat = new Mat(bmp.getHeight(), bmp.getWidth(), CvType.CV_8UC3);
         byte[] data = ((DataBufferByte) bmp.getRaster().getDataBuffer()).getData();
         bmpMat.put(0,0, data);
@@ -125,14 +129,18 @@ public class ImageObj {
         Mat erode_element = Imgproc.getStructuringElement(Imgproc.MORPH_ERODE, new  Size(this.erode_size, this.erode_size));
         Imgproc.erode(detectedEdges, detectedEdges, erode_element);
 
-        byte[] return_buff = new byte[(int) (detectedEdges.total() * detectedEdges.channels())];
-        detectedEdges.get(0, 0, return_buff);
+        MatOfByte mob = new MatOfByte();
+        Imgcodecs.imencode(".jpg", detectedEdges, mob);
+        byte[] return_buff = mob.toArray();
+
 
         try {
             bmp = ImageIO.read(new ByteArrayInputStream(return_buff));
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+//        System.out.println(bmp.toString());
 
 
         this.processed_bmp = bmp;
@@ -165,5 +173,9 @@ public class ImageObj {
         w_h.put("height", height);
 
         return w_h;
+    }
+
+    public BufferedImage getBmp() {
+        return bmp;
     }
 }
