@@ -42,4 +42,11 @@ out/
 in/
 
 java_based_app/.attach_pid*
-python-train-data/data
+
+1. crop/
+2. gray/
+3. blur/
+4. canny/
+5. dilate/
+6. erode/
+7. result/
