@@ -227,7 +227,7 @@ class DescriptiveStats{
         return this.mean;
     }
 
-    public  Double getVariance(){
+    public Double getVariance(){
         return this.variance;
     }
 

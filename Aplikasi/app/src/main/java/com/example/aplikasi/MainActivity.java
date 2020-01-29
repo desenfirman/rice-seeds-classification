@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -245,9 +246,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         ImageObj imageObj = new ImageObj(loadedImg);
+        Log.d("B", "classifyImage: " + cfg.getGblur_kernel_size());
         imageObj.setGblur_kernel_size(cfg.getGblur_kernel_size());
-        imageObj.setCanny_threshold(cfg.getCanny_threshold());
-        imageObj.setCanny_range(cfg.getCanny_range());
+        imageObj.setCanny_threshold_1(cfg.getCanny_threshold_1());
+        imageObj.setCanny_threshold_2(cfg.getCanny_threshold_2());
         imageObj.setDilate_size(cfg.getDilate_size());
         imageObj.setErode_size(cfg.getErode_size());
 

@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ConfigReader {
-    private Double gblur_kernel_size, canny_threshold, canny_range, dilate_size, erode_size;
+    private Double gblur_kernel_size, canny_threshold_1, canny_threshold_2, dilate_size, erode_size;
     private HashMap<String, ArrayList<DescriptiveStats>> model;
 
 
@@ -49,8 +49,8 @@ public class ConfigReader {
         Map<String, ArrayList<DescriptiveStats>> model_map = gsonBuilder.fromJson(model, mapType);
 
         this.gblur_kernel_size = config_map.get("gblur_kernel_size");
-        this.canny_threshold = config_map.get("canny_threshold");
-        this.canny_range = config_map.get("canny_range");
+        this.canny_threshold_1 = config_map.get("canny_threshold_1");
+        this.canny_threshold_2 = config_map.get("canny_threshold_2");
         this.dilate_size = config_map.get("dilate_size");
         this.erode_size = config_map.get("erode_size");
         this.model = new HashMap<String, ArrayList<DescriptiveStats>>(model_map);
@@ -60,12 +60,12 @@ public class ConfigReader {
         return gblur_kernel_size;
     }
 
-    public Double getCanny_threshold() {
-        return canny_threshold;
+    public Double getCanny_threshold_1() {
+        return canny_threshold_1;
     }
 
-    public Double getCanny_range() {
-        return canny_range;
+    public Double getCanny_threshold_2() {
+        return canny_threshold_2;
     }
 
     public Double getDilate_size() {

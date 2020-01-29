@@ -16,7 +16,8 @@ import java.util.Map;
 public class ImageObj {
     private Uri uri;
     private Bitmap bmp;
-    private Double gblur_kernel_size, canny_threshold, canny_range, dilate_size, erode_size;
+    private Double gblur_kernel_size, canny_threshold_1, canny_threshold_2, dilate_size, erode_size;
+    private int MAX_DIMEN = 1500;
 
     public ImageObj(){
         if (!OpenCVLoader.initDebug())
@@ -29,7 +30,7 @@ public class ImageObj {
         this();
         this.uri = uri;
 
-        this.gblur_kernel_size = this.canny_range = this.canny_threshold = this.dilate_size = this.erode_size = 0.0;
+        this.gblur_kernel_size = this.canny_threshold_1 = this.canny_threshold_2 = this.dilate_size = this.erode_size = 0.0;
         this.bmp = bmp;
     }
 
@@ -38,12 +39,12 @@ public class ImageObj {
         this.gblur_kernel_size = gblur_kernel_size;
     }
 
-    public void setCanny_threshold(Double canny_threshold) {
-        this.canny_threshold = canny_threshold;
+    public void setCanny_threshold_1(Double canny_threshold_1) {
+        this.canny_threshold_1 = canny_threshold_1;
     }
 
-    public void setCanny_range(Double canny_range) {
-        this.canny_range = canny_range;
+    public void setCanny_threshold_2(Double canny_threshold_2) {
+        this.canny_threshold_2 = canny_threshold_2;
     }
 
     public void setDilate_size(Double dilate_size) {
@@ -60,8 +61,22 @@ public class ImageObj {
         int Xmin = Integer.MAX_VALUE;
         int Ymax = Integer.MIN_VALUE;
         int Ymin = Integer.MAX_VALUE;
+
+//        int other_dimen = bmp.getWidth() < bmp.getHeight() ? bmp.getHeight() : bmp.getWidth();
+
+        double dim, other_dim;
+        if (bmp.getWidth() > bmp.getHeight()){
+            dim = this.MAX_DIMEN;
+            other_dim  = bmp.getHeight() * this.MAX_DIMEN / bmp.getWidth();
+        }else{
+            dim = bmp.getWidth() * this.MAX_DIMEN / bmp.getHeight();
+            other_dim  = this.MAX_DIMEN;
+        }
+
+        Log.d("IMGDetection", "getObjectDimension: " + dim + " " + other_dim);
+
         bmp = Bitmap.createBitmap(bmp, bmp.getWidth() * 1 / 5, bmp.getHeight() * 1 / 3, bmp.getWidth() * 3 / 5, bmp.getHeight() / 3);
-        bmp = Bitmap.createScaledBitmap(bmp, ((int) (bmp.getWidth() * 0.25)), ((int) (bmp.getHeight() * 0.25)), false);
+        bmp = Bitmap.createScaledBitmap(bmp, (int) dim, (int) other_dim, false);
 
         Bitmap bmp32 = bmp.copy(Bitmap.Config.RGB_565, true);
         Mat bmpMat = new Mat();
@@ -76,8 +91,7 @@ public class ImageObj {
         // reduce noise with a input kernel size
         Imgproc.blur(grayImage, detectedEdges, new Size(this.gblur_kernel_size, this.gblur_kernel_size));
 
-        // canny detector, with ratio of lower threshold & upper threshold is canny_range times ratio
-        Imgproc.Canny(detectedEdges, detectedEdges, this.canny_threshold, this.canny_threshold * this.canny_range);
+        Imgproc.Canny(detectedEdges, detectedEdges, this.canny_threshold_1, this.canny_threshold_2);
 
         Mat dilate_element = Imgproc.getStructuringElement(Imgproc.MORPH_DILATE, new  Size(this.dilate_size, this.dilate_size));
         Imgproc.dilate(detectedEdges, detectedEdges, dilate_element);

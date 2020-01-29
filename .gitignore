@@ -42,3 +42,4 @@ out/
 in/
 
 java_based_app/.attach_pid*
+python-train-data/data

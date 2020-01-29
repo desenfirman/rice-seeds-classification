@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/home/desenfirman/.conda/envs/rice_seeds_classification/bin/python",
+    "python.pythonPath": "/opt/anaconda/bin/python",
     "python.linting.enabled": true,
     "python.linting.pylintEnabled": false,
     "python.linting.pycodestyleEnabled": true
