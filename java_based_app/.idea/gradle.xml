@@ -12,7 +12,7 @@
         <option name="gradleJvm" value="#JAVA_INTERNAL" />
         <option name="modules">
           <set>
-            <option value="/run/media/desenfirman/Data/desenfirman/development/work-work-work/skripsi-meike/rice-seeds-classification/java_based_app" />
+            <option value="$PROJECT_DIR$" />
           </set>
         </option>
         <option name="useAutoImport" value="true" />
