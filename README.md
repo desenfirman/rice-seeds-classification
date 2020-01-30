@@ -1,5 +1,20 @@
 # Rice Seed Classification
-Detail:
-- Aplikasi untuk membuat dataset dan classifier model: folder java_based_app (IntelliJ-IDEA)
+
+## Detail
+
 - Aplikasi mobile: Folder Aplikasi (Intellij-IDEA)
-- Some Python Script: Folder python_based_app (Python + Kivy)
+- Aplikasi untuk training data: Folder python-train-data (Python)
+
+## Cara penggunaan
+
+### python-train-data
+
+1. Sebelum menjalankan aplikasi. Install package yang dibutuhkan dengan menjalankan perintah
+
+    ```bash
+    pip install numpy unicodecsv opencv-contrib-python opencv-python imutils scipy Pillow
+    ```
+
+2. Jalankan program `main.py`
+3. Masukkan beberapa parameter yang dibutuhkan
+4. Setelah proses training selesai, maka akan muncul file `model.json`. File model tersebut yang akan digunakan pada aplikasi Mobile
